@@ -2,16 +2,13 @@ package com.pixeltrice.springbootQRcodegeneratorapp;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.io.BufferedWriter;
-import java.io.Console;
-import java.io.File;
-import java.io.FileWriter;
+import java.io.*;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.util.Base64;
 import java.util.Calendar;
 
 @RestController
@@ -19,6 +16,7 @@ public class QRCodeController {
 	private static final String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
 	
 	private static final String QR_CODE_IMAGE_PATH = "./src/main/resources/"+timeStamp+".png";
+	private final int LENGTH_CONTENT_FILE_HTML = 82;
 
 	
     @GetMapping(value = "/qrcode/{codeText}/{width}/{height}")
@@ -30,17 +28,42 @@ public class QRCodeController {
 			        QRCodeGenerator.generateQRCodeImage(codeText, width, height, QR_CODE_IMAGE_PATH);
 			    }
 
-    @GetMapping(value = "/generateQRCode/{codeText}")
-   	public ResponseEntity<ResponseEntity<byte[]>> generateQRCode(
-   			@PathVariable("codeText") String codeText)
-   		    throws Exception {
-			ResponseEntity<byte[]> responseEntity = QRCodeGenerator.QRCodeImage(codeText);
-			//File fileHtml = new File("D:\\spring-boot-QR-code-generator-app\\src\\main\\resources\\index.html)");
-		    //BufferedWriter BW = new BufferedWriter(new FileWriter(fileHtml));
-			//BW.write();
-		    //String s = new String(bytes, StandardCharsets.UTF_8);
+	@GetMapping(value = "/generateQRCode/{codeText}")
+	public ResponseEntity<ResponseEntity<byte[]>> generateQRCode(
+			@PathVariable("codeText") String codeText){
+		try (FileInputStream inputStream = new FileInputStream("D:\\spring-boot-QR-code-generator-app\\src\\main\\resources\\index.html")) {
+			BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+			String line;
+			StringBuilder fileContents = new StringBuilder();
+			while ((line = reader.readLine()) != null) {
+				fileContents.append(line);
+			}
+			if(fileContents.length() == LENGTH_CONTENT_FILE_HTML) {
+				int base64Index = fileContents.indexOf("base64,");
+
+				String myStringToAppend = Base64.getEncoder()
+						.encodeToString(QRCodeGenerator.QRCodeImage(codeText).getBody());
+				fileContents.insert(base64Index + 7, myStringToAppend);
+				outputFile(fileContents);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		return ResponseEntity.status(HttpStatus.OK).body(QRCodeGenerator.QRCodeImage(codeText));
-   		    }
+
+	}
+	@RequestMapping(method = RequestMethod.GET, value = "/index")
+	public String aName() {
+		return "index";
+	}
+
+	private void outputFile(StringBuilder fileContents){
+		try (FileOutputStream outputStream = new FileOutputStream("D:\\spring-boot-QR-code-generator-app\\src\\main\\resources\\index.html")) {
+			outputStream.write(fileContents.toString().getBytes());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
    	
 
 
