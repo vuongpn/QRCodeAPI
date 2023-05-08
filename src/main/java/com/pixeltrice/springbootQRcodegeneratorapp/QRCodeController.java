@@ -38,12 +38,12 @@ public class QRCodeController {
 			while ((line = reader.readLine()) != null) {
 				fileContents.append(line);
 			}
-			if(fileContents.length() == LENGTH_CONTENT_FILE_HTML) {
+			if(fileContents.length() != LENGTH_CONTENT_FILE_HTML ) {
 				int base64Index = fileContents.indexOf("base64,");
 
-				String myStringToAppend = Base64.getEncoder()
-						.encodeToString(QRCodeGenerator.QRCodeImage(codeText).getBody());
-				fileContents.insert(base64Index + 7, myStringToAppend);
+				String myStringToAppend = Base64.getEncoder().encodeToString(QRCodeGenerator.QRCodeImage(codeText).getBody());
+				fileContents.delete(fileContents.indexOf("base64,")+7,fileContents.indexOf(" alt=")-1);
+				fileContents.insert(base64Index+7, myStringToAppend);
 				outputFile(fileContents);
 			}
 		} catch (IOException e) {
@@ -51,10 +51,6 @@ public class QRCodeController {
 		}
 		return ResponseEntity.status(HttpStatus.OK).body(QRCodeGenerator.QRCodeImage(codeText));
 
-	}
-	@RequestMapping(method = RequestMethod.GET, value = "/index")
-	public String aName() {
-		return "index";
 	}
 
 	private void outputFile(StringBuilder fileContents){
